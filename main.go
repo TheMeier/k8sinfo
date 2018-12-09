@@ -90,9 +90,10 @@ func main() {
 		Default(filepath.Join(homedir.HomeDir(), ".kube", "config")).
 		Short('c').
 		String()
-	scrapeInterval := kingpin.Flag("scarpeInterval",
-		"Interval for between data scarping").
+	scrapeInterval := kingpin.Flag("scrapeInterval",
+		"Interval for between data scraping").
 		Default("2").
+		Short('i').
 		Int()
 	host := kingpin.Flag("web.listen-address",
 		"Address to listen on for http requests").
