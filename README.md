@@ -11,5 +11,7 @@ Flags:
   -c, --kubeconfig="/path/to/.kube/config"
                           absolute path to the kubeconfig file
       --scarpeInterval=2  Interval for between data scarping
+  -l, --web.listen-address=":2112"
+                          Address to listen on for http requests
   -d, --debug             Set log level to debug
   ```

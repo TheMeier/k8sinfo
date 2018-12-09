@@ -94,6 +94,11 @@ func main() {
 		"Interval for between data scarping").
 		Default("2").
 		Int()
+	host := kingpin.Flag("web.listen-address",
+		"Address to listen on for http requests").
+		Default(":2112").
+		Short('l').
+		String()
 	debug := kingpin.Flag("debug", "Set log level to debug").
 		Default("false").
 		Short('d').
@@ -109,8 +114,11 @@ func main() {
 		<-gocron.Start()
 	}()
 
+	log.Infof("Staring k8sinfo, listening on %s, scrape interval %d",
+		*host,
+		*scrapeInterval)
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", k8sHTTPHandler)
-	log.Fatal(http.ListenAndServe(":2112", nil))
+	log.Fatal(http.ListenAndServe(*host, nil))
 
 }
