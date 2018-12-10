@@ -59,19 +59,21 @@ func scrapeData(kubeconfig string) {
 				log.Debugf("Initcontainer: %s, %s", initContainter.Name, deployment.Namespace)
 				newData.Deployments = append(newData.Deployments,
 					model.DeploymentData{Namespace: deployment.Namespace,
-						Image:   initContainter.Image,
-						Name:    initContainter.Name,
-						Context: contextName,
-						Labels:  deployment.Labels})
+						Image:          initContainter.Image,
+						ContainerName:  initContainter.Name,
+						DeploymentName: deployment.Name,
+						Context:        contextName,
+						Labels:         deployment.Labels})
 			}
 			for _, containter := range deployment.Spec.Template.Spec.Containers {
 				log.Debugf("Container: %s, %s", containter.Name, deployment.Namespace)
 				newData.Deployments = append(newData.Deployments,
 					model.DeploymentData{Namespace: deployment.Namespace,
-						Image:   containter.Image,
-						Name:    containter.Name,
-						Context: contextName,
-						Labels:  deployment.Labels})
+						Image:          containter.Image,
+						ContainerName:  containter.Name,
+						DeploymentName: deployment.Name,
+						Context:        contextName,
+						Labels:         deployment.Labels})
 
 			}
 		}

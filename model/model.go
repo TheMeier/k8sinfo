@@ -7,9 +7,10 @@ type K8sInfoData struct {
 
 // DeploymentData contains all scarped data for one deployment
 type DeploymentData struct {
-	Context   string
-	Name      string
-	Namespace string
-	Image     string
-	Labels    map[string]string
+	Context        string
+	DeploymentName string
+	ContainerName  string
+	Namespace      string
+	Image          string
+	Labels         map[string]string
 }
