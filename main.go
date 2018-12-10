@@ -109,16 +109,17 @@ func main() {
 	if *debug {
 		log.SetLevel(log.DebugLevel)
 	}
+  log.Infof("Staring k8sinfo, listening on %s, scrape interval %d",
+		*host,
+		*scrapeInterval)
 
+  scrapeData(*kubeconfig)
 	go func() {
 		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfig)
 		<-gocron.Start()
 	}()
 
-	log.Infof("Staring k8sinfo, listening on %s, scrape interval %d",
-		*host,
-		*scrapeInterval)
-	http.Handle("/metrics", promhttp.Handler())
+		http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", k8sHTTPHandler)
 	log.Fatal(http.ListenAndServe(*host, nil))
 
