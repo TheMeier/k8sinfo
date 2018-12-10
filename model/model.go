@@ -11,4 +11,5 @@ type DeploymentData struct {
 	Name      string
 	Namespace string
 	Image     string
+	Labels    map[string]string
 }

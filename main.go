@@ -58,18 +58,23 @@ func scrapeData(kubeconfig string) {
 			for _, initContainter := range deployment.Spec.Template.Spec.InitContainers {
 				log.Debugf("Initcontainer: %s, %s", initContainter.Name, deployment.Namespace)
 				newData.Deployments = append(newData.Deployments,
-					model.DeploymentData{Namespace: deployment.Namespace, Image: initContainter.Image, Name: initContainter.Name, Context: contextName})
+					model.DeploymentData{Namespace: deployment.Namespace,
+						Image:   initContainter.Image,
+						Name:    initContainter.Name,
+						Context: contextName,
+						Labels:  deployment.Labels})
 			}
 			for _, containter := range deployment.Spec.Template.Spec.Containers {
 				log.Debugf("Container: %s, %s", containter.Name, deployment.Namespace)
 				newData.Deployments = append(newData.Deployments,
-					model.DeploymentData{Namespace: deployment.Namespace, Image: containter.Image, Name: containter.Name, Context: contextName})
+					model.DeploymentData{Namespace: deployment.Namespace,
+						Image:   containter.Image,
+						Name:    containter.Name,
+						Context: contextName,
+						Labels:  deployment.Labels})
 
 			}
-
-			log.Debugf("%#v\n", newData)
 		}
-
 		k8sInfoData.Set(newData)
 	}
 }
@@ -109,17 +114,17 @@ func main() {
 	if *debug {
 		log.SetLevel(log.DebugLevel)
 	}
-  log.Infof("Staring k8sinfo, listening on %s, scrape interval %d",
+	log.Infof("Staring k8sinfo, listening on %s, scrape interval %d",
 		*host,
 		*scrapeInterval)
 
-  scrapeData(*kubeconfig)
+	scrapeData(*kubeconfig)
 	go func() {
 		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfig)
 		<-gocron.Start()
 	}()
 
-		http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", k8sHTTPHandler)
 	log.Fatal(http.ListenAndServe(*host, nil))
 
