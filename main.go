@@ -77,8 +77,8 @@ func scrapeData(kubeconfig string) {
 
 			}
 		}
-		k8sInfoData.Set(newData)
 	}
+	k8sInfoData.Set(newData)
 }
 
 func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
