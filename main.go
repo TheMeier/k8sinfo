@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -27,58 +27,60 @@ func getDefaultOverride() clientcmd.ConfigOverrides {
 		},
 	}
 }
-func scrapeData(kubeconfig string) {
+func scrapeData(kubeconfigs []string) {
 
-	cnf, err := clientcmd.LoadFromFile(kubeconfig)
-	if err != nil {
-		log.Errorf("Failed to parse config at %s", kubeconfig)
-		log.Errorf("%s", err)
-		return
-	}
-	var newData model.K8sInfoData
-
-	for contextName := range cnf.Contexts {
-		log.Debugf("Context: %s\n", contextName)
-
-		override := getDefaultOverride()
-		config := clientcmd.NewNonInteractiveClientConfig(*cnf, contextName, &override, nil)
-		clientConfig, err := config.ClientConfig()
+	for _, kubeconfig := range kubeconfigs {
+		cnf, err := clientcmd.LoadFromFile(kubeconfig)
 		if err != nil {
-			log.Errorf("Failed to create clientConfig: %s", err)
-			continue
+			log.Errorf("Failed to parse config at %s", kubeconfig)
+			log.Errorf("%s", err)
+			return
 		}
-		clientset, err := kubernetes.NewForConfig(clientConfig)
-		deployments, err := clientset.AppsV1beta1().Deployments("").List(v1.ListOptions{})
-		if err != nil {
-			log.Errorf("Failed to list deployments: %s", err)
-			continue
-		}
-		for _, deployment := range deployments.Items {
+		var newData model.K8sInfoData
 
-			for _, initContainter := range deployment.Spec.Template.Spec.InitContainers {
-				log.Debugf("Initcontainer: %s, %s", initContainter.Name, deployment.Namespace)
-				newData.Deployments = append(newData.Deployments,
-					model.DeploymentData{Namespace: deployment.Namespace,
-						Image:          initContainter.Image,
-						ContainerName:  initContainter.Name,
-						DeploymentName: deployment.Name,
-						Context:        contextName,
-						Labels:         deployment.Labels})
-			}
-			for _, containter := range deployment.Spec.Template.Spec.Containers {
-				log.Debugf("Container: %s, %s", containter.Name, deployment.Namespace)
-				newData.Deployments = append(newData.Deployments,
-					model.DeploymentData{Namespace: deployment.Namespace,
-						Image:          containter.Image,
-						ContainerName:  containter.Name,
-						DeploymentName: deployment.Name,
-						Context:        contextName,
-						Labels:         deployment.Labels})
+		for contextName := range cnf.Contexts {
+			log.Debugf("Context: %s\n", contextName)
 
+			override := getDefaultOverride()
+			config := clientcmd.NewNonInteractiveClientConfig(*cnf, contextName, &override, nil)
+			clientConfig, err := config.ClientConfig()
+			if err != nil {
+				log.Errorf("Failed to create clientConfig: %s", err)
+				continue
+			}
+			clientset, err := kubernetes.NewForConfig(clientConfig)
+			deployments, err := clientset.AppsV1beta1().Deployments("").List(v1.ListOptions{})
+			if err != nil {
+				log.Errorf("Failed to list deployments: %s", err)
+				continue
+			}
+			for _, deployment := range deployments.Items {
+
+				for _, initContainter := range deployment.Spec.Template.Spec.InitContainers {
+					log.Debugf("Initcontainer: %s, %s", initContainter.Name, deployment.Namespace)
+					newData.Deployments = append(newData.Deployments,
+						model.DeploymentData{Namespace: deployment.Namespace,
+							Image:          initContainter.Image,
+							ContainerName:  initContainter.Name,
+							DeploymentName: deployment.Name,
+							Context:        contextName,
+							Labels:         deployment.Labels})
+				}
+				for _, containter := range deployment.Spec.Template.Spec.Containers {
+					log.Debugf("Container: %s, %s", containter.Name, deployment.Namespace)
+					newData.Deployments = append(newData.Deployments,
+						model.DeploymentData{Namespace: deployment.Namespace,
+							Image:          containter.Image,
+							ContainerName:  containter.Name,
+							DeploymentName: deployment.Name,
+							Context:        contextName,
+							Labels:         deployment.Labels})
+
+				}
 			}
 		}
+		k8sInfoData.Set(newData)
 	}
-	k8sInfoData.Set(newData)
 }
 
 func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,16 +89,16 @@ func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var kubeconfig *string
+	var kubeconfigs *[]string
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 
-	kubeconfig = kingpin.Flag("kubeconfig",
+	kubeconfigs = kingpin.Flag("kubeconfig",
 		"absolute path to the kubeconfig file").
 		Default(filepath.Join(homedir.HomeDir(), ".kube", "config")).
 		Short('c').
-		String()
+		Strings()
 	scrapeInterval := kingpin.Flag("scrapeInterval",
 		"Interval for between data scraping").
 		Default("2").
@@ -120,9 +122,9 @@ func main() {
 		*host,
 		*scrapeInterval)
 
-	scrapeData(*kubeconfig)
+	scrapeData(*kubeconfigs)
 	go func() {
-		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfig)
+		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfigs)
 		<-gocron.Start()
 	}()
 
