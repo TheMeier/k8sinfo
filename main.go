@@ -89,19 +89,18 @@ func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var kubeconfigs *[]string
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 
-	kubeconfigs = kingpin.Flag("kubeconfig",
-		"absolute path to the kubeconfig file").
+	kubeconfigs := kingpin.Flag("kubeconfig",
+		"path to one or multiple kubeconfig files").
 		Default(filepath.Join(homedir.HomeDir(), ".kube", "config")).
 		Short('c').
-		Strings()
+		ExistingFiles()
 	scrapeInterval := kingpin.Flag("scrapeInterval",
-		"Interval for between data scraping").
-		Default("2").
+		"Interval between data scraping").
+		Default("120").
 		Short('i').
 		Int()
 	host := kingpin.Flag("web.listen-address",
