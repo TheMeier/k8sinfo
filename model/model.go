@@ -1,11 +1,11 @@
 package model
 
-// K8sInfoData holds all scarped data
+// K8sInfoData holds all scraped data
 type K8sInfoData struct {
 	Deployments []DeploymentData
 }
 
-// DeploymentData contains all scarped data for one deployment
+// DeploymentData contains all scraped data for one deployment
 type DeploymentData struct {
 	Context        string
 	DeploymentName string

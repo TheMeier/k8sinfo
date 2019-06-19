@@ -1,0 +1,21 @@
+Description=k8sinfo
+Wants=basic.target
+After=basic.target network.target
+
+[Service]
+User=k8sinfo
+Group=k8sinfo
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=yes
+ExecStart=/usr/bin/k8sinfo \
+--kubeconfig=/etc/k8sinfo/kubeconfig \
+--scrapeInterval=120 \
+--web.listen-address=":2112"
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
