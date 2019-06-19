@@ -29,6 +29,7 @@ func getDefaultOverride() clientcmd.ConfigOverrides {
 }
 func scrapeData(kubeconfigs []string) {
 
+	var newData model.K8sInfoData
 	for _, kubeconfig := range kubeconfigs {
 		cnf, err := clientcmd.LoadFromFile(kubeconfig)
 		if err != nil {
@@ -36,7 +37,6 @@ func scrapeData(kubeconfigs []string) {
 			log.Errorf("%s", err)
 			return
 		}
-		var newData model.K8sInfoData
 
 		for contextName := range cnf.Contexts {
 			log.Debugf("Context: %s\n", contextName)
@@ -79,8 +79,8 @@ func scrapeData(kubeconfigs []string) {
 				}
 			}
 		}
-		k8sInfoData.Set(newData)
 	}
+	k8sInfoData.Set(newData)
 }
 
 func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
