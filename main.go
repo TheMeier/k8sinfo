@@ -75,6 +75,14 @@ func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(k8sInfoData.Get())
 }
+func k8sHTTPHandlerDeployments(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(k8sInfoData.Get().Deployments)
+}
+func k8sHTTPHandlerServices(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(k8sInfoData.Get().Services)
+}
 
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -117,6 +125,8 @@ func main() {
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", k8sHTTPHandler)
+	http.HandleFunc("/deployments", k8sHTTPHandlerDeployments)
+	http.HandleFunc("/services", k8sHTTPHandlerServices)
 	log.Fatal(http.ListenAndServe(*host, nil))
 
 }
