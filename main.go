@@ -55,29 +55,17 @@ func scrapeData(kubeconfigs []string) {
 				continue
 			}
 			for _, deployment := range deployments.Items {
-
-				for _, initContainter := range deployment.Spec.Template.Spec.InitContainers {
-					log.Debugf("Initcontainer: %s, %s", initContainter.Name, deployment.Namespace)
-					newData.Deployments = append(newData.Deployments,
-						model.DeploymentData{Namespace: deployment.Namespace,
-							Image:          initContainter.Image,
-							ContainerName:  initContainter.Name,
-							DeploymentName: deployment.Name,
-							Context:        contextName,
-							Labels:         deployment.Labels})
-				}
-				for _, containter := range deployment.Spec.Template.Spec.Containers {
-					log.Debugf("Container: %s, %s", containter.Name, deployment.Namespace)
-					newData.Deployments = append(newData.Deployments,
-						model.DeploymentData{Namespace: deployment.Namespace,
-							Image:          containter.Image,
-							ContainerName:  containter.Name,
-							DeploymentName: deployment.Name,
-							Context:        contextName,
-							Labels:         deployment.Labels})
-
-				}
+				newData.Deployments = append(newData.Deployments, deployment)
 			}
+			services, err := clientset.CoreV1().Services("").List(v1.ListOptions{})
+			if err != nil {
+				log.Errorf("Failed to list services: %s", err)
+				continue
+			}
+			for _, service := range services.Items {
+				newData.Services = append(newData.Services, service)
+			}
+
 		}
 	}
 	k8sInfoData.Set(newData)
