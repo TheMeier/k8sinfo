@@ -49,7 +49,7 @@ func scrapeData(kubeconfigs []string) {
 				continue
 			}
 			clientset, err := kubernetes.NewForConfig(clientConfig)
-			deployments, err := clientset.AppsV1beta1().Deployments("").List(v1.ListOptions{})
+			deployments, err := clientset.Apps().Deployments("").List(v1.ListOptions{})
 			if err != nil {
 				log.Errorf("Failed to list deployments: %s", err)
 				continue
