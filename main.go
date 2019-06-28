@@ -11,6 +11,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	apps "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,7 +31,7 @@ func getDefaultOverride() clientcmd.ConfigOverrides {
 }
 func scrapeData(kubeconfigs []string) {
 
-	var newData model.K8sInfoData
+	newData := make(map[string]*model.K8sInfoElement)
 	for _, kubeconfig := range kubeconfigs {
 		cnf, err := clientcmd.LoadFromFile(kubeconfig)
 		if err != nil {
@@ -49,23 +51,12 @@ func scrapeData(kubeconfigs []string) {
 				continue
 			}
 			clientset, err := kubernetes.NewForConfig(clientConfig)
-			deployments, err := clientset.Apps().Deployments("").List(v1.ListOptions{})
-			if err != nil {
-				log.Errorf("Failed to list deployments: %s", err)
-				continue
+			deployments, _ := clientset.Apps().Deployments("").List(v1.ListOptions{})
+			services, _ := clientset.CoreV1().Services("").List(v1.ListOptions{})
+			newData[contextName] = &model.K8sInfoElement{
+				Deployments: deployments,
+				Services:    services,
 			}
-			for _, deployment := range deployments.Items {
-				newData.Deployments = append(newData.Deployments, deployment)
-			}
-			services, err := clientset.CoreV1().Services("").List(v1.ListOptions{})
-			if err != nil {
-				log.Errorf("Failed to list services: %s", err)
-				continue
-			}
-			for _, service := range services.Items {
-				newData.Services = append(newData.Services, service)
-			}
-
 		}
 	}
 	k8sInfoData.Set(newData)
@@ -75,13 +66,25 @@ func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(k8sInfoData.Get())
 }
+
 func k8sHTTPHandlerDeployments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(k8sInfoData.Get().Deployments)
+	data := k8sInfoData.Get()
+	ret := make(map[string]*apps.DeploymentList)
+	for context, value := range data {
+		ret[context] = value.Deployments
+	}
+	json.NewEncoder(w).Encode(ret)
 }
+
 func k8sHTTPHandlerServices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(k8sInfoData.Get().Services)
+	data := k8sInfoData.Get()
+	ret := make(map[string]*core.ServiceList)
+	for context, value := range data {
+		ret[context] = value.Services
+	}
+	json.NewEncoder(w).Encode(ret)
 }
 
 func main() {
