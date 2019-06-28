@@ -39,7 +39,7 @@ func scrapeData(kubeconfigs []string) {
 		}
 
 		for contextName := range cnf.Contexts {
-			log.Debugf("Context: %s\n", contextName)
+			log.Debugf("Context: %s", contextName)
 
 			override := getDefaultOverride()
 			config := clientcmd.NewNonInteractiveClientConfig(*cnf, contextName, &override, nil)
@@ -55,7 +55,7 @@ func scrapeData(kubeconfigs []string) {
 				continue
 			}
 			for _, deployment := range deployments.Items {
-				newData.Deployments = append(newData.Deployments, &deployment)
+				newData.Deployments = append(newData.Deployments, deployment)
 			}
 			services, err := clientset.CoreV1().Services("").List(v1.ListOptions{})
 			if err != nil {
@@ -63,7 +63,7 @@ func scrapeData(kubeconfigs []string) {
 				continue
 			}
 			for _, service := range services.Items {
-				newData.Services = append(newData.Services, &service)
+				newData.Services = append(newData.Services, service)
 			}
 
 		}

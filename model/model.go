@@ -7,6 +7,6 @@ import (
 
 // K8sInfoData holds all scraped data
 type K8sInfoData struct {
-	Deployments []*apps.Deployment
-	Services    []*core.Service
+	Deployments []apps.Deployment
+	Services    []core.Service
 }
