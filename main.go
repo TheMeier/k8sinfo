@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/TheMeier/k8sinfo/model"
+	"github.com/TheMeier/k8sinfo/stores"
+	"github.com/globalsign/mgo"
 	"github.com/jasonlvhit/gocron"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +32,7 @@ func getDefaultOverride() clientcmd.ConfigOverrides {
 		},
 	}
 }
-func scrapeData(kubeconfigs []string) {
+func scrapeData(kubeconfigs []string, mongoSession *mgo.Session, mongoEnable *bool) {
 
 	newData := make(map[string]*model.K8sInfoElement)
 	for _, kubeconfig := range kubeconfigs {
@@ -60,6 +63,9 @@ func scrapeData(kubeconfigs []string) {
 		}
 	}
 	k8sInfoData.Set(newData)
+	if *mongoEnable {
+		stores.UpdateMongoDB(k8sInfoData.Get(), mongoSession)
+	}
 }
 
 func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +117,15 @@ func main() {
 		Default("false").
 		Short('d').
 		Bool()
+	mongoEnable := kingpin.Flag("mongoEnable", "Enable exporter for mongodb").
+		Default("false").
+		Bool()
+	mongoAddress := kingpin.Flag("mongoAddress",
+		"address to mongo seed servers, can be specified multiple times").
+		Default("localhost:27017").
+		Short('m').
+		Strings()
+
 	kingpin.Parse()
 
 	if *debug {
@@ -120,9 +135,28 @@ func main() {
 		*host,
 		*scrapeInterval)
 
-	scrapeData(*kubeconfigs)
+	mongoSession := &mgo.Session{}
+
+	if *mongoEnable {
+		mongoDBDialInfo := &mgo.DialInfo{
+			Addrs:    *mongoAddress,
+			Timeout:  60 * time.Second,
+			Database: "k8sinfo",
+			Username: os.Getenv("MONGO_USERNAME"),
+			Password: os.Getenv("MONGO_PASSWORD"),
+		}
+		var err error
+		mongoSession, err = mgo.DialWithInfo(mongoDBDialInfo)
+		if err != nil {
+			log.Fatalf("CreateSession: %s\n", err)
+		}
+	} else {
+		mongoSession = &mgo.Session{}
+	}
+
+	scrapeData(*kubeconfigs, mongoSession, mongoEnable)
 	go func() {
-		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfigs)
+		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfigs, mongoSession, mongoEnable)
 		<-gocron.Start()
 	}()
 
