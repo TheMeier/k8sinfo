@@ -12,6 +12,7 @@ import (
 // UpdateMongoDB writes all data to mongodb
 func UpdateMongoDB(data model.K8sInfoData, session *mgo.Session) {
 	db := session.DB("k8sinfo")
+	now := bson.Now()
 	for context, element := range data {
 		for _, deployment := range element.Deployments.Items {
 
@@ -20,6 +21,7 @@ func UpdateMongoDB(data model.K8sInfoData, session *mgo.Session) {
 			update := model.DeploymentElement{
 				Name:       name,
 				Deployment: &deployment,
+				Timestamp:  now,
 			}
 			info, err := db.C("deployments").Upsert(filter, &update)
 			if err != nil {
