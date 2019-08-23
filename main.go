@@ -16,6 +16,7 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	v1beta1 "k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -54,11 +55,13 @@ func scrapeData(kubeconfigs []string, mongoSession *mgo.Session, mongoEnable *bo
 				continue
 			}
 			clientset, err := kubernetes.NewForConfig(clientConfig)
-			deployments, _ := clientset.Apps().Deployments("").List(v1.ListOptions{})
+			deployments, _ := clientset.AppsV1().Deployments("").List(v1.ListOptions{})
 			services, _ := clientset.CoreV1().Services("").List(v1.ListOptions{})
+			ingresses, _ := clientset.ExtensionsV1beta1().Ingresses("").List(v1.ListOptions{})
 			newData[contextName] = &model.K8sInfoElement{
 				Deployments: deployments,
 				Services:    services,
+				Ingresses:   ingresses,
 			}
 		}
 	}
@@ -89,6 +92,16 @@ func k8sHTTPHandlerServices(w http.ResponseWriter, r *http.Request) {
 	ret := make(map[string]*core.ServiceList)
 	for context, value := range data {
 		ret[context] = value.Services
+	}
+	json.NewEncoder(w).Encode(ret)
+}
+
+func k8sHTTPHandlerIngresses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	data := k8sInfoData.Get()
+	ret := make(map[string]*v1beta1.IngressList)
+	for context, value := range data {
+		ret[context] = value.Ingresses
 	}
 	json.NewEncoder(w).Encode(ret)
 }
@@ -164,6 +177,7 @@ func main() {
 	http.HandleFunc("/", k8sHTTPHandler)
 	http.HandleFunc("/deployments", k8sHTTPHandlerDeployments)
 	http.HandleFunc("/services", k8sHTTPHandlerServices)
+	http.HandleFunc("/ingresses", k8sHTTPHandlerIngresses)
 	log.Fatal(http.ListenAndServe(*host, nil))
 
 }

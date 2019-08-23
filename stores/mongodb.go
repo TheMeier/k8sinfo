@@ -43,5 +43,19 @@ func UpdateMongoDB(data model.K8sInfoData, session *mgo.Session) {
 				log.Errorf("Failed to insert %+v %+v", err, info)
 			}
 		}
+
+		for _, ingress := range element.Ingresses.Items {
+
+			name := fmt.Sprintf("%s_%s_%s", context, ingress.Namespace, ingress.Name)
+			filter := bson.M{"name": name}
+			update := model.IngressElement{
+				Name:    name,
+				Ingress: &ingress,
+			}
+			info, err := db.C("ingresses").Upsert(filter, &update)
+			if err != nil {
+				log.Errorf("Failed to insert %+v %+v", err, info)
+			}
+		}
 	}
 }
