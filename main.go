@@ -178,6 +178,11 @@ func main() {
 	http.HandleFunc("/deployments", k8sHTTPHandlerDeployments)
 	http.HandleFunc("/services", k8sHTTPHandlerServices)
 	http.HandleFunc("/ingresses", k8sHTTPHandlerIngresses)
+	http.HandleFunc("/trigger", func(w http.ResponseWriter, r *http.Request) {
+		scrapeData(*kubeconfigs, mongoSession, mongoEnable)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+	})
 	log.Fatal(http.ListenAndServe(*host, nil))
 
 }
