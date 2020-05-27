@@ -35,8 +35,9 @@ func UpdateMongoDB(data model.K8sInfoData, session *mgo.Session) {
 			name := fmt.Sprintf("%s_%s_%s", context, service.Namespace, service.Name)
 			filter := bson.M{"name": name}
 			update := model.ServiceElement{
-				Name:    name,
-				Service: &service,
+				Name:      name,
+				Service:   &service,
+				Timestamp: now,
 			}
 			info, err := db.C("services").Upsert(filter, &update)
 			if err != nil {
@@ -49,8 +50,9 @@ func UpdateMongoDB(data model.K8sInfoData, session *mgo.Session) {
 			name := fmt.Sprintf("%s_%s_%s", context, ingress.Namespace, ingress.Name)
 			filter := bson.M{"name": name}
 			update := model.IngressElement{
-				Name:    name,
-				Ingress: &ingress,
+				Name:      name,
+				Ingress:   &ingress,
+				Timestamp: now,
 			}
 			info, err := db.C("ingresses").Upsert(filter, &update)
 			if err != nil {
