@@ -1,3 +1,4 @@
+[Unit]
 Description=k8sinfo
 Wants=basic.target
 After=basic.target network.target
