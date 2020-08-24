@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -49,15 +50,18 @@ func scrapeData(kubeconfigs []string, mongoSession *mgo.Session, mongoEnable *bo
 
 			override := getDefaultOverride()
 			config := clientcmd.NewNonInteractiveClientConfig(*cnf, contextName, &override, nil)
+
 			clientConfig, err := config.ClientConfig()
 			if err != nil {
 				log.Errorf("Failed to create clientConfig: %s", err)
 				continue
 			}
+			ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+			defer cancel()
 			clientset, err := kubernetes.NewForConfig(clientConfig)
-			deployments, _ := clientset.AppsV1().Deployments("").List(v1.ListOptions{})
-			services, _ := clientset.CoreV1().Services("").List(v1.ListOptions{})
-			ingresses, _ := clientset.ExtensionsV1beta1().Ingresses("").List(v1.ListOptions{})
+			deployments, _ := clientset.AppsV1().Deployments("").List(ctx, v1.ListOptions{})
+			services, _ := clientset.CoreV1().Services("").List(ctx, v1.ListOptions{})
+			ingresses, _ := clientset.ExtensionsV1beta1().Ingresses("").List(ctx, v1.ListOptions{})
 			newData[contextName] = &model.K8sInfoElement{
 				Deployments: deployments,
 				Services:    services,
