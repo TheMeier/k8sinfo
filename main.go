@@ -59,6 +59,9 @@ func scrapeData(kubeconfigs []string, mongoSession *mgo.Session, mongoEnable *bo
 			ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 			defer cancel()
 			clientset, err := kubernetes.NewForConfig(clientConfig)
+			if err != nil {
+				log.Errorf("Failed to create clientset: %s", err)
+			}
 			deployments, _ := clientset.AppsV1().Deployments("").List(ctx, v1.ListOptions{})
 			services, _ := clientset.CoreV1().Services("").List(ctx, v1.ListOptions{})
 			ingresses, _ := clientset.ExtensionsV1beta1().Ingresses("").List(ctx, v1.ListOptions{})
@@ -77,7 +80,10 @@ func scrapeData(kubeconfigs []string, mongoSession *mgo.Session, mongoEnable *bo
 
 func k8sHTTPHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(k8sInfoData.Get())
+	err := json.NewEncoder(w).Encode(k8sInfoData.Get())
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func k8sHTTPHandlerDeployments(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +93,10 @@ func k8sHTTPHandlerDeployments(w http.ResponseWriter, r *http.Request) {
 	for context, value := range data {
 		ret[context] = value.Deployments
 	}
-	json.NewEncoder(w).Encode(ret)
+	err := json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Errorf("Failed to encode json: %s", err)
+	}
 }
 
 func k8sHTTPHandlerServices(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +106,11 @@ func k8sHTTPHandlerServices(w http.ResponseWriter, r *http.Request) {
 	for context, value := range data {
 		ret[context] = value.Services
 	}
-	json.NewEncoder(w).Encode(ret)
+	err := json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Errorf("Failed to encode json: %s", err)
+	}
+
 }
 
 func k8sHTTPHandlerIngresses(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +120,11 @@ func k8sHTTPHandlerIngresses(w http.ResponseWriter, r *http.Request) {
 	for context, value := range data {
 		ret[context] = value.Ingresses
 	}
-	json.NewEncoder(w).Encode(ret)
+	err := json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Errorf("Failed to encode json: %s", err)
+	}
+
 }
 
 func main() {
@@ -173,7 +190,10 @@ func main() {
 
 	scrapeData(*kubeconfigs, mongoSession, mongoEnable)
 	go func() {
-		gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfigs, mongoSession, mongoEnable)
+		err := gocron.Every(uint64(*scrapeInterval)).Seconds().Do(scrapeData, *kubeconfigs, mongoSession, mongoEnable)
+		if err != nil {
+			log.Errorf("Failed to start gocron: %s", err)
+		}
 		<-gocron.Start()
 	}()
 
