@@ -3,7 +3,6 @@ module github.com/TheMeier/k8sinfo
 go 1.12
 
 require (
-	github.com/PuerkitoBio/purell v1.2.0 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8

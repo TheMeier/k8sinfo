@@ -17,7 +17,7 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -64,7 +64,8 @@ func scrapeData(kubeconfigs []string, mongoSession *mgo.Session, mongoEnable *bo
 			}
 			deployments, _ := clientset.AppsV1().Deployments("").List(ctx, v1.ListOptions{})
 			services, _ := clientset.CoreV1().Services("").List(ctx, v1.ListOptions{})
-			ingresses, _ := clientset.ExtensionsV1beta1().Ingresses("").List(ctx, v1.ListOptions{})
+
+			ingresses, _ := clientset.NetworkingV1().Ingresses("").List(ctx, v1.ListOptions{})
 			newData[contextName] = &model.K8sInfoElement{
 				Deployments: deployments,
 				Services:    services,
@@ -116,7 +117,7 @@ func k8sHTTPHandlerServices(w http.ResponseWriter, r *http.Request) {
 func k8sHTTPHandlerIngresses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	data := k8sInfoData.Get()
-	ret := make(map[string]*v1beta1.IngressList)
+	ret := make(map[string]*networking.IngressList)
 	for context, value := range data {
 		ret[context] = value.Ingresses
 	}
